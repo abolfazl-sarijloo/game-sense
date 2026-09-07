@@ -49,7 +49,30 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  auth-service:
+    build:
+      context: ./services/auth-service
+    container_name: gamesense-auth
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./services/auth-service:/app
+    command: python manage.py runserver 0.0.0.0:8000
+  
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health/')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s   
 
+  
 volumes:
   postgres_data:
   redis_data:
