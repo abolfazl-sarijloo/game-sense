@@ -1,65 +1,65 @@
 import jwt
 
 from django.conf import settings
-from rest_framework import authentication
+from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 
-from src.presentation.users.models import UserModel
 
-
-class JWTAuthentication(authentication.BaseAuthentication):
+class JWTAuthentication(BaseAuthentication):
 
     def authenticate(self, request):
-
         auth_header = request.headers.get("Authorization")
 
         if not auth_header:
             return None
 
-        parts = auth_header.split()
-
-        if len(parts) != 2 or parts[0].lower() != "bearer":
+        try:
+            scheme, token = auth_header.split(" ", 1)
+        except ValueError:
             raise AuthenticationFailed(
                 "Invalid authorization header."
             )
 
-        token = parts[1]
+        if scheme.lower() != "bearer":
+            raise AuthenticationFailed(
+                "Authorization scheme must be Bearer."
+            )
 
         try:
             payload = jwt.decode(
                 token,
                 settings.JWT_SECRET,
-                algorithms=[settings.JWT_ALGORITHM],
+                algorithms=["HS256"],
             )
-
         except jwt.ExpiredSignatureError:
             raise AuthenticationFailed(
                 "Token has expired."
             )
-
         except jwt.InvalidTokenError:
             raise AuthenticationFailed(
                 "Invalid token."
             )
 
-        if payload.get("type") != "access":
-            raise AuthenticationFailed(
-                "Invalid token type."
-            )
-
-        user_id = payload.get("sub")
+        user_id = payload.get("user_id") or payload.get("sub")
 
         if not user_id:
             raise AuthenticationFailed(
-                "Invalid token."
+                "Token does not contain user identity."
             )
 
-        try:
-            user = UserModel.objects.get(id=user_id)
+        return (
+            GameSenseUser(
+                user_id=int(user_id),
+            ),
+            token,
+        )
 
-        except UserModel.DoesNotExist:
-            raise AuthenticationFailed(
-                "User not found."
-            )
 
-        return (user, token)
+class GameSenseUser:
+
+    def __init__(self, user_id: int):
+        self.id = user_id
+
+    @property
+    def is_authenticated(self):
+        return True

@@ -26,6 +26,6 @@ class JWTTokenGenerator(TokenGenerator):
 
         return jwt.encode(
             payload,
-            settings.SECRET_KEY,
+            settings.JWT_SECRET,
             algorithm=settings.JWT_ALGORITHM,
         )

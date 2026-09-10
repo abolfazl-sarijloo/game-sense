@@ -72,8 +72,50 @@ services:
       retries: 3
       start_period: 10s   
 
+  game-postgres:
+    image: postgres:17-alpine
+    container_name: gamesense-game-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: game_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - game_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d game_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  game-service:
+    build:
+      context: ./services/game-service
+    container_name: gamesense-game
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    environment:
+      POSTGRES_DB: game_db
+      POSTGRES_HOST: game-postgres
+    ports:
+      - "8002:8000"
+    depends_on:
+      game-postgres:
+        condition: service_healthy
+    volumes:
+      - ./services/game-service:/app
+    command: python manage.py runserver 0.0.0.0:8000
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health/')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
   
 volumes:
   postgres_data:
   redis_data:
   rabbitmq_data:
+  game_postgres_data:

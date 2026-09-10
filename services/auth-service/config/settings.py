@@ -134,8 +134,11 @@ MAILERS = {
     },
 }
 
-JWT_ACCESS_TOKEN_LIFETIME_MINUTES = 30
-JWT_ALGORITHM = "HS256"
+JWT_SECRET = os.getenv("JWT_SECRET", "gamesense-jwt-dev")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+JWT_ACCESS_TOKEN_LIFETIME_MINUTES = int(
+    os.getenv("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", "30")
+)
 
 
 REST_FRAMEWORK = {
@@ -143,6 +146,3 @@ REST_FRAMEWORK = {
         "src.infrastructure.security.jwt_authentication.JWTAuthentication",
     ],
 }
-
-JWT_ACCESS_TOKEN_LIFETIME_MINUTES = 30
-JWT_ALGORITHM = "HS256"
